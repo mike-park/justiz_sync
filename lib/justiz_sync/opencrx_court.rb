@@ -2,13 +2,13 @@ require 'opencrx'
 
 module JustizSync
 
-  class Court
+  class OpencrxCourt
     attr_reader :court
 
     class << self
 
       def sync(justiz_court)
-        Court.new(justiz_court).sync
+        OpencrxCourt.new(justiz_court).sync
       end
 
       def find(id)

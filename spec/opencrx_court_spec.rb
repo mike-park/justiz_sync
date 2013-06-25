@@ -1,6 +1,6 @@
 require_relative "spec_helper"
 
-describe JustizSync do
+describe JustizSync::OpencrxCourt do
   before do
     Opencrx::connect("http://localhost:8080", "guest", "guest")
   end
@@ -45,15 +45,15 @@ describe JustizSync do
 
     it "should create a court" do
       VCR.use_cassette('create', vcr_options) do
-        JustizSync::Court.sync(court)
-        crx = JustizSync::Court.find(court.id)
+        JustizSync::OpencrxCourt.sync(court)
+        crx = JustizSync::OpencrxCourt.find(court.id)
         match_court(court, crx)
       end
     end
 
     it "should find court" do
       VCR.use_cassette('find', vcr_options) do
-        crx = JustizSync::Court.find(court.id)
+        crx = JustizSync::OpencrxCourt.find(court.id)
         match_court(court, crx)
       end
     end
@@ -64,8 +64,8 @@ describe JustizSync do
         court.post_address.plz += ' Update'
         court.url += ' Update
 '
-        JustizSync::Court.sync(court)
-        crx = JustizSync::Court.find(court.id)
+        JustizSync::OpencrxCourt.sync(court)
+        crx = JustizSync::OpencrxCourt.find(court.id)
 
         expect(court.court).to match(/Update/)
         match_court(court, crx)
