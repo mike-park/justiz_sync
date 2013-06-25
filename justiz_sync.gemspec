@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = JustizSync::VERSION
   spec.authors       = ["Mike Park"]
   spec.email         = ["mikep@quake.net"]
-  spec.description   = %q{Command line tool to sync contacts from Justiz to openCRX}
+  spec.description   = %q{Reads contact information from justiz gem and saves to LegalEntities using the opencrx gem }
   spec.summary       = %q{Command line tool to sync contacts from Justiz to openCRX}
   spec.homepage      = ""
   spec.license       = "MIT"
