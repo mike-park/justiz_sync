@@ -3,6 +3,8 @@ require 'opencrx'
 module JustizSync
 
   class OpencrxCourt
+    TAG = 'justiz'
+
     attr_reader :court
 
     class << self
@@ -14,6 +16,10 @@ module JustizSync
       def find(id)
         query = id_to_query(id)
         Opencrx::Model::LegalEntity.query(query).first
+      end
+
+      def find_tagged
+        Opencrx::Model::LegalEntity.query(query: "thereExistsUserString2().equalTo(\"#{TAG}\")")
       end
 
       # court.id is stored in openCRX userString1
@@ -28,8 +34,11 @@ module JustizSync
     end
 
     def sync
+      return 0 if entity.userString3 == court.digest
+
       entity.name = court.court
       entity.aliasName = court.justiz_id
+      entity.userString3 = court.digest
       entity.save
 
       court_address = court.location_address
@@ -65,6 +74,8 @@ module JustizSync
       process_address(Opencrx::Model::WebAddress, usage(:business), court.url.blank?) do |address|
         address.webUrl = court.url
       end
+
+      1
     end
 
     def addresses
@@ -83,7 +94,7 @@ module JustizSync
         address.destroy if address
         return
       end
-      address ||= create_address(klass, usage)
+      address ||= build_address(klass, usage)
       update_address(address, &block)
     end
 
@@ -100,8 +111,8 @@ module JustizSync
       end
     end
 
-    def create_address(klass, usage)
-      address = klass.new(usage: usage, userString1: court.id)
+    def build_address(klass, usage)
+      address = klass.new(usage: usage, userString1: court.id, userString2: TAG)
       address.assign_to(entity)
       address
     end
@@ -119,7 +130,9 @@ module JustizSync
     end
 
     def create_entity
-      Opencrx::Model::LegalEntity.new(name: court.court, userString1: court.id).save
+      le = Opencrx::Model::LegalEntity.new(name: court.court, userString1: court.id, userString2: TAG)
+      puts "Failed to save #{court.court}" unless le.save
+      le
     end
 
   end

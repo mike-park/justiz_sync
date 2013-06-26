@@ -6,20 +6,18 @@ describe JustizSync::OpencrxCourt do
   end
 
   context "sync" do
-    let(:court) { OpenStruct.new(court: 'Staatsanwaltschaft Düsseldorf',
-                                 location_address: OpenStruct.new(
-                                     street: 'Fritz-Roeber-Straße 2', plz: '40213', city: 'Düsseldorf'),
-                                 post_address: OpenStruct.new(
-                                     street: 'P.O.Box 123', plz: '40999', city: 'Düsseldorf - Post'),
-                                 phone: '0211 6025 0',
-                                 fax: '0211 6025 2929',
-                                 justiz_id: 'R1100S',
-                                 url: 'http://www.sta-duesseldorf.nrw.de',
-                                 email: 'poststelle@sta-duesseldorf.nrw.de',
-                                 id: 'Staatsanwaltschaft Düsseldorf/poststelle@sta-duesseldorf.nrw.de'
-    ) }
+    let(:court) { Justiz::Contact.new(court: 'TEST Staatsanwaltschaft Düsseldorf',
+                                      location: 'Fritz-Roeber-Straße 2, 40213 Düsseldorf',
+                                      post: 'P.O.Box 123, 40999 Düsseldorf - Post',
+                                      phone: '0211 6025 0',
+                                      fax: '0211 6025 2929',
+                                      justiz_id: 'R1100S',
+                                      url: 'http://www.sta-duesseldorf.nrw.de',
+                                      email: 'poststelle@sta-duesseldorf.nrw.de') }
 
-    let(:vcr_options) { {match_requests_on: [:method, :path, :query, :body]} }
+    before do
+      delete_courts(court.id)
+    end
 
     def find_attribute(addresses, name)
       addresses.map do |address|
@@ -33,7 +31,9 @@ describe JustizSync::OpencrxCourt do
 
       expect(crx.name).to eq(court.court)
       expect(crx.aliasName).to eq(court.justiz_id)
-      expect(crx.attribute(:userString1)).to eq(court.id)
+      expect(crx.userString1).to eq(court.id)
+      expect(crx.userString2).to eq(JustizSync::OpencrxCourt::TAG)
+      expect(crx.userString3).to eq(court.digest)
 
       addresses = crx.addresses
 
@@ -43,33 +43,51 @@ describe JustizSync::OpencrxCourt do
       expect(find_attribute(addresses, :emailAddress)).to eq([court.email])
     end
 
-    it "should create a court" do
-      VCR.use_cassette('create', vcr_options) do
-        JustizSync::OpencrxCourt.sync(court)
-        crx = JustizSync::OpencrxCourt.find(court.id)
-        match_court(court, crx)
+    def delete_courts(id)
+      while (crx = JustizSync::OpencrxCourt.find(id))
+        crx.destroy
       end
     end
 
-    it "should find court" do
-      VCR.use_cassette('find', vcr_options) do
-        crx = JustizSync::OpencrxCourt.find(court.id)
-        match_court(court, crx)
-      end
+    it "should create and find court" do
+      expect(JustizSync::OpencrxCourt.sync(court)).to eq(1)
+      crx = JustizSync::OpencrxCourt.find(court.id)
+      match_court(court, crx)
+      delete_courts(court.id)
     end
 
-    it "should update a court" do
-      VCR.use_cassette('update', vcr_options) do
-        court.court += ' Update'
-        court.post_address.plz += ' Update'
-        court.url += ' Update
-'
-        JustizSync::OpencrxCourt.sync(court)
-        crx = JustizSync::OpencrxCourt.find(court.id)
+    it "should update court" do
+      JustizSync::OpencrxCourt.sync(court)
 
-        expect(court.court).to match(/Update/)
-        match_court(court, crx)
-      end
+      updated_court = court.dup
+      updated_court.url += ' Update'
+
+      expect(JustizSync::OpencrxCourt.sync(updated_court)).to eq(1)
+      crx = JustizSync::OpencrxCourt.find(court.id)
+      match_court(updated_court, crx)
+      crx.destroy
+      expect(JustizSync::OpencrxCourt.find(court.id)).to_not be
+    end
+
+    it "should not update unchanged court" do
+      JustizSync::OpencrxCourt.sync(court)
+      crx = JustizSync::OpencrxCourt.find(court.id)
+      match_court(court, crx)
+
+      expect(JustizSync::OpencrxCourt.sync(court)).to eq(0)
+      crx.destroy
+    end
+  end
+
+  context "tagged" do
+    xit "deletes tagged entries" do
+      total = 0
+      begin
+        result_set = JustizSync::OpencrxCourt.find_tagged
+        result_set.each(&:destroy)
+        total += result_set.length
+      end while result_set && result_set.more?
+      puts "#{total} destroyed"
     end
   end
 end

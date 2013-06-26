@@ -4,11 +4,6 @@ require 'justiz'
 
 module JustizSync
   class Cli < Thor
-    desc "hello NAME", "say hello to NAME"
-    def hello(name)
-      puts "Hello #{name}"
-    end
-
     option :user, required: true, default: 'guest'
     option :password, required: true, default: 'guest'
     option :url, required: true, default: 'http://localhost:8080'
@@ -52,7 +47,7 @@ module JustizSync
     def sync_courts(courts)
       courts.each_with_index do |court, index|
         OpencrxCourt.sync(court)
-        puts if verbose && ((index+1) % 20 == 0)
+        puts if verbose && index && (index % 20 == 0)
         putc('.') if verbose
       end
       puts if verbose
