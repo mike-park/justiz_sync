@@ -1,5 +1,4 @@
 require 'thor'
-require 'awesome_print'
 require 'justiz'
 
 module JustizSync
