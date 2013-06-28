@@ -1,14 +1,12 @@
 require 'opencrx'
 
 module JustizSync
-
   class OpencrxCourt
     TAG = 'justiz'
 
     attr_reader :court
 
     class << self
-
       def sync(justiz_court)
         OpencrxCourt.new(justiz_court).sync
       end
@@ -19,7 +17,27 @@ module JustizSync
       end
 
       def find_tagged
-        Opencrx::Model::LegalEntity.query(query: "thereExistsUserString2().equalTo(\"#{TAG}\")")
+        tagged = []
+        position = 0
+        size = 500
+        begin
+          result_set = Opencrx::Model::LegalEntity.query(size: size, position: position,
+                                                         query: "thereExistsUserString2().equalTo(\"#{TAG}\")")
+          position += result_set.length
+          tagged += result_set
+        end while result_set && result_set.more?
+        tagged
+      end
+
+      def all_ids
+        find_tagged.map { |crx| crx.userString1 }
+      end
+
+      def destroy(ids)
+        ids.each do |id|
+          crx = find(id)
+          crx.destroy if crx
+        end
       end
 
       # court.id is stored in openCRX userString1

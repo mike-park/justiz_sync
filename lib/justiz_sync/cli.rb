@@ -11,16 +11,12 @@ module JustizSync
     desc 'sync', 'sync all records from justiz to opencrx'
     def sync
       transfer = Transfer.new(options)
-      if (state = options['state'])
-        transfer.sync_state(state)
-      else
-        transfer.sync
-      end
+      transfer.sync
     end
   end
 
   class Transfer
-    attr_reader :options
+    attr_reader :options, :stream
     def initialize(options)
       @options = options
       STDOUT.sync = true
@@ -28,24 +24,33 @@ module JustizSync
     end
 
     def sync
-      states = scraper.states
-      total = 0
-      states.keys.each do |state|
-        total += sync_state(state)
+      @stream = Stream.new
+      delete_unused = false
+      if (state = options['state'])
+        sync_state(state)
+      else
+        sync_all
+        delete_unused = true
       end
-      puts "Total #{total} synchronized"
+      stream.close(delete_unused)
+    end
+
+    def sync_all
+      states = scraper.states
+      states.keys.each do |state|
+        sync_state(state)
+      end
     end
 
     def sync_state(state)
       courts = scraper.contacts_for(state)
       puts "Syncing #{state} #{courts.length} courts"
       sync_courts(courts)
-      courts.length
     end
 
     def sync_courts(courts)
       courts.each_with_index do |court, index|
-        OpencrxCourt.sync(court)
+        stream.sync(court)
         puts if verbose && index && (index % 20 == 0)
         putc('.') if verbose
       end

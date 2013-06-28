@@ -1,20 +1,21 @@
 require_relative "spec_helper"
 
 describe JustizSync::OpencrxCourt do
+  let(:court) { Justiz::Contact.new(court: 'TEST Staatsanwaltschaft Düsseldorf',
+                                    location: 'Fritz-Roeber-Straße 2, 40213 Düsseldorf',
+                                    post: 'P.O.Box 123, 40999 Düsseldorf - Post',
+                                    phone: '0211 6025 0',
+                                    fax: '0211 6025 2929',
+                                    justiz_id: 'R1100S',
+                                    url: 'http://www.sta-duesseldorf.nrw.de',
+                                    email: 'poststelle@sta-duesseldorf.nrw.de') }
+
+
   before do
     Opencrx::connect("http://localhost:8080", "guest", "guest")
   end
 
   context "sync" do
-    let(:court) { Justiz::Contact.new(court: 'TEST Staatsanwaltschaft Düsseldorf',
-                                      location: 'Fritz-Roeber-Straße 2, 40213 Düsseldorf',
-                                      post: 'P.O.Box 123, 40999 Düsseldorf - Post',
-                                      phone: '0211 6025 0',
-                                      fax: '0211 6025 2929',
-                                      justiz_id: 'R1100S',
-                                      url: 'http://www.sta-duesseldorf.nrw.de',
-                                      email: 'poststelle@sta-duesseldorf.nrw.de') }
-
     before do
       delete_courts(court.id)
     end
@@ -43,12 +44,6 @@ describe JustizSync::OpencrxCourt do
       expect(find_attribute(addresses, :emailAddress)).to eq([court.email])
     end
 
-    def delete_courts(id)
-      while (crx = JustizSync::OpencrxCourt.find(id))
-        crx.destroy
-      end
-    end
-
     it "should create and find court" do
       expect(JustizSync::OpencrxCourt.sync(court)).to eq(1)
       crx = JustizSync::OpencrxCourt.find(court.id)
@@ -56,18 +51,19 @@ describe JustizSync::OpencrxCourt do
       delete_courts(court.id)
     end
 
-    it "should update court" do
-      JustizSync::OpencrxCourt.sync(court)
-
-      updated_court = court.dup
-      updated_court.url += ' Update'
-
-      expect(JustizSync::OpencrxCourt.sync(updated_court)).to eq(1)
-      crx = JustizSync::OpencrxCourt.find(court.id)
-      match_court(updated_court, crx)
-      crx.destroy
-      expect(JustizSync::OpencrxCourt.find(court.id)).to_not be
-    end
+    # id is now digest, so any changes creates a new id
+    #it "should update court" do
+    #  JustizSync::OpencrxCourt.sync(court)
+    #
+    #  updated_court = court.dup
+    #  updated_court.url += ' Update'
+    #
+    #  expect(JustizSync::OpencrxCourt.sync(updated_court)).to eq(1)
+    #  crx = JustizSync::OpencrxCourt.find(court.id)
+    #  match_court(updated_court, crx)
+    #  crx.destroy
+    #  expect(JustizSync::OpencrxCourt.find(court.id)).to_not be
+    #end
 
     it "should not update unchanged court" do
       JustizSync::OpencrxCourt.sync(court)
@@ -76,18 +72,6 @@ describe JustizSync::OpencrxCourt do
 
       expect(JustizSync::OpencrxCourt.sync(court)).to eq(0)
       crx.destroy
-    end
-  end
-
-  context "tagged" do
-    xit "deletes tagged entries" do
-      total = 0
-      begin
-        result_set = JustizSync::OpencrxCourt.find_tagged
-        result_set.each(&:destroy)
-        total += result_set.length
-      end while result_set && result_set.more?
-      puts "#{total} destroyed"
     end
   end
 end

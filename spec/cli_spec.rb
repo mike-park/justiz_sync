@@ -6,7 +6,7 @@ describe JustizSync::Cli do
     JustizSync::Cli.start(%w(sync --verbose  --state=BRD))
   end
 
-  it "syncs all records" do
+  xit "syncs all records" do
     JustizSync::Cli.start(%w(sync --verbose))
   end
 end

@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "justiz", "~> 0.1.3"
+  spec.add_dependency "justiz", "~> 0.2.1"
   spec.add_dependency "opencrx", "~> 0.2.0"
   spec.add_dependency "thor"
 
